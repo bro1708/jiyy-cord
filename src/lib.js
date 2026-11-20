@@ -15,12 +15,24 @@ async function getText(url) {
   const text = await res.text();
   if (res.status === 403 || res.status === 503 || /Just a moment|Attention Required/i.test(text.slice(0, 3000)))
     throw new HttpError('Sumber (chordtela.com) memblokir request ini (Cloudflare challenge)', 502);
-  if (!res.ok) throw new HttpError(`Sumber membalas HTTP ${res.status}`, 502);
+  if (!res.ok) throw new HttpError(`Sumber membalas HTTP ${res.status} untuk ${new URL(url).pathname}`, 502);
   return text;
 }
 
 const abs = h => { try { return new URL(h, BASE).href; } catch { return ''; } };
 const links = ($, sel) => $(sel).map((_, a) => ({ title: $(a).text().trim(), url: abs($(a).attr('href')) })).get();
+
+const POST_RE = /\/\d{4}\/\d{2}\/[^/?#]+\.html/;
+function postLinks($) {
+  const seen = new Set(), out = [];
+  $('a').each((_, a) => {
+    const url = abs($(a).attr('href') || ''), title = $(a).text().trim();
+    if (!title || !POST_RE.test(url) || seen.has(url)) return;
+    seen.add(url); out.push({ title, url });
+  });
+  return out;
+}
+const tidyTitle = t => t.replace(/\s*-\s*ChordTela\.com$/i, '').replace(/^Kunci Gitar\s*/i, '').trim();
 
 // ─── Transpose ─────────────────────────────────────────────────
 const NOTES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
@@ -58,7 +70,9 @@ function transposeHtml(html, semi) {
 export async function home() {
   const $ = cheerio.load(await getText(BASE));
   const w = $('.widget_recent_entries').map((_, el) => [links($, $(el).find('li a'))]).get();
-  return { success: true, source: BASE, latest: w[0] || [], featured: w[1] || [] };
+  let latest = w[0] || [];
+  if (!latest.length) latest = postLinks($).slice(0, 30);
+  return { success: true, source: BASE, latest, featured: w[1] || [] };
 }
 
 export async function daftarIsi() {
@@ -87,16 +101,50 @@ export async function chord(url, semi = 0) {
   return { success: true, title, url, transpose: semi, contentHtml, content };
 }
 
-// Situs ini berbasis Blogger → pakai feed JSON bawaan (tanpa browser)
+// Pencarian tanpa browser: coba feed Blogger, lalu halaman /search bawaan Blogger
 export async function search(q) {
   if (!q) throw new HttpError('Parameter q wajib diisi', 400);
-  const url = `${BASE}/feeds/posts/summary?q=${encodeURIComponent(q)}&alt=json&max-results=25`;
-  let json;
-  try { json = JSON.parse(await getText(url)); }
-  catch (e) { if (e instanceof HttpError) throw e; throw new HttpError('Feed pencarian tidak bisa dibaca', 502); }
-  const data = (json.feed?.entry || []).map(e => ({
-    title: (e.title?.$t || '').replace(/^Kunci Gitar\s*/i, '').trim(),
-    url: (e.link || []).find(l => l.rel === 'alternate')?.href || '',
-  })).filter(i => i.title && i.url);
-  return { success: true, query: q, source: url, total: data.length, data };
+  const enc = encodeURIComponent(q);
+  let data = [], source = '', feedErr, htmlErr;
+
+  const feedUrl = `${BASE}/feeds/posts/summary?q=${enc}&alt=json&max-results=25`;
+  try {
+    const json = JSON.parse(await getText(feedUrl));
+    data = (json.feed?.entry || []).map(e => ({
+      title: tidyTitle(e.title?.$t || ''),
+      url: (e.link || []).find(l => l.rel === 'alternate')?.href || '',
+    })).filter(i => i.title && i.url);
+    source = feedUrl;
+  } catch (e) { feedErr = e; }
+
+  if (!data.length) {
+    const htmlUrl = `${BASE}/search?q=${enc}&max-results=25`;
+    try {
+      const $ = cheerio.load(await getText(htmlUrl));
+      data = postLinks($).map(i => ({ ...i, title: tidyTitle(i.title) })).filter(i => i.title);
+      source = htmlUrl;
+    } catch (e) { htmlErr = e; }
+  }
+
+  if (!data.length && feedErr && htmlErr)
+    throw new HttpError(`Pencarian gagal. Feed: ${feedErr.message}. Halaman cari: ${htmlErr.message}`, 502);
+  return { success: true, query: q, source, total: data.length, data };
+}
+
+// Diagnosa: cek status tiap alamat sumber dari sisi Worker
+export async function probe() {
+  const targets = ['/', '/daftar-isi', '/chord-gitar-a-b', '/feeds/posts/summary?alt=json&max-results=1', '/search?q=dewa', '/chord-kunci-gitar-dasar-hasil-pencarian?q=dewa'];
+  const results = await Promise.all(targets.map(async path => {
+    try {
+      const r = await fetch(BASE + path, { headers: { 'User-Agent': UA }, redirect: 'manual' });
+      const t = await r.text();
+      return {
+        path, status: r.status, location: r.headers.get('location'), bytes: t.length,
+        challenge: /Just a moment|Attention Required/i.test(t.slice(0, 3000)),
+        postLinks: (t.match(/\/\d{4}\/\d{2}\/[^"'\s<>]+\.html/g) || []).length,
+        head: t.slice(0, 120).replace(/\s+/g, ' '),
+      };
+    } catch (e) { return { path, error: e.message }; }
+  }));
+  return { success: true, base: BASE, results };
 }
