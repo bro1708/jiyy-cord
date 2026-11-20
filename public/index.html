@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>jiyy-cord</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=Spline+Sans+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ground:#e7ebee; --ink:#101d2a; --mute:#566676; --line:#c9d1d8; --chord:#0b6a5a; --on-ink:#e7ebee;
+  --ui:'Familjen Grotesk','Helvetica Neue',Arial,sans-serif;
+  --mono:'Spline Sans Mono',ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light dark;
+}
+@media (prefers-color-scheme:dark){
+  :root{--ground:#10171e; --ink:#e4e9ed; --mute:#8d9ca9; --line:#26323d; --chord:#5fd1b8; --on-ink:#10171e}
+}
+*{box-sizing:border-box;margin:0;padding:0;
+  -webkit-user-select:none;user-select:none;
+  -webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;
+  touch-action:pan-x pan-y}
+::selection{background:transparent;color:inherit}
+::-moz-selection{background:transparent;color:inherit}
+html,body{height:100%;background:var(--ground);color:var(--ink);font-family:var(--ui);
+  -webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--chord);outline-offset:2px}
+[hidden]{display:none!important}
+
+.page{max-width:640px;margin:0 auto;padding:28px 20px 80px}
+h1{font-size:44px;font-weight:700;letter-spacing:-.04em;line-height:1}
+.sub{margin-top:8px;color:var(--mute);font-size:15px}
+
+#f{display:flex;gap:12px;align-items:flex-end;margin-top:28px}
+#q{flex:1;min-width:0;font:500 18px var(--ui);color:var(--ink);background:transparent;border:0;
+  border-bottom:2px solid var(--ink);padding:10px 0;border-radius:0;outline:0;
+  -webkit-user-select:text;user-select:text;-webkit-appearance:none;appearance:none}
+#q::placeholder{color:var(--mute)}
+#q::selection{background:transparent}
+#q:focus-visible{border-bottom-color:var(--chord)}
+.btn{background:var(--ink);color:var(--on-ink);font-weight:700;padding:12px 18px;border-radius:4px}
+.btn:active{opacity:.8}
+
+#tabs{display:flex;gap:22px;margin-top:26px;border-bottom:1px solid var(--line)}
+#tabs button{padding:10px 0;font-weight:500;color:var(--mute);border-bottom:3px solid transparent;margin-bottom:-1px}
+#tabs button.on{color:var(--ink);border-bottom-color:var(--ink);font-weight:700}
+
+#letters{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+#letters button{min-width:52px;padding:8px 10px;border:1px solid var(--line);border-radius:4px;font-weight:500}
+#letters button.on{background:var(--ink);color:var(--on-ink);border-color:var(--ink)}
+
+.head{margin-top:20px;font-size:14px;color:var(--mute)}
+.row{display:block;width:100%;text-align:left;padding:15px 0;font-size:17px;font-weight:500;line-height:1.3;
+  border-bottom:1px solid var(--line)}
+.row:active{background:var(--line)}
+.note{padding:28px 0;color:var(--mute);font-size:16px;line-height:1.5}
+.note .btn{margin-top:14px;display:inline-block}
+
+#song{position:fixed;inset:0;background:var(--ground);display:flex;flex-direction:column;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left)}
+.bar{padding:10px 16px 0;border-bottom:1px solid var(--line)}
+.top{display:flex;align-items:center;gap:12px}
+.back{padding:10px 14px 10px 0;font-weight:700}
+#st{font-size:17px;font-weight:700;line-height:1.2;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+#strip{display:flex;gap:6px;overflow-x:auto;padding:10px 0;scrollbar-width:none}
+#strip::-webkit-scrollbar{display:none}
+#strip button{flex:none;min-width:48px;padding:9px 8px;border:1px solid var(--line);border-radius:4px;
+  font:600 14px var(--mono)}
+#strip button.on{background:var(--chord);border-color:var(--chord);color:var(--on-ink)}
+.tools{display:flex;gap:8px;padding:0 0 10px}
+.tools button{padding:9px 14px;border:1px solid var(--line);border-radius:4px;font-weight:500;font-size:15px}
+.tools button.on{border-color:var(--ink);font-weight:700}
+#wrap{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:18px 16px calc(80px + env(safe-area-inset-bottom))}
+#sheet{font:400 14px/1.55 var(--mono);white-space:pre;tab-size:4}
+#sheet b,#sheet .tbi-tooltip{font-weight:600;color:var(--chord)}
+#sheet span.custom{display:none}
+#sheet a{color:inherit;text-decoration:none}
+#sheet img{display:none}
+</style>
+</head>
+<body>
+<div class="page" id="home">
+  <h1>jiyy-cord</h1>
+  <p class="sub">Chord gitar. Ganti nada dasar, gulir otomatis.</p>
+
+  <form id="f" autocomplete="off">
+    <input id="q" type="search" placeholder="Judul lagu atau nama artis" enterkeyhint="search" aria-label="Cari lagu">
+    <button class="btn" type="submit">Cari</button>
+  </form>
+
+  <nav id="tabs">
+    <button data-t="terbaru" class="on">Terbaru</button>
+    <button data-t="pilihan">Pilihan</button>
+    <button data-t="artis">Artis A–Z</button>
+  </nav>
+  <div id="letters" hidden></div>
+  <div class="head" id="head" hidden></div>
+  <main id="list"></main>
+</div>
+
+<section id="song" hidden aria-label="Chord lagu">
+  <div class="bar">
+    <div class="top">
+      <button class="back" id="back">Kembali</button>
+      <div id="st"></div>
+    </div>
+    <div id="strip" aria-label="Transpose"></div>
+    <div class="tools">
+      <button id="fm">Huruf kecil</button>
+      <button id="fp">Huruf besar</button>
+      <button id="auto">Gulir: mati</button>
+    </div>
+  </div>
+  <div id="wrap"><pre id="sheet"></pre></div>
+</section>
+
+<script>
+(()=>{
+const $=s=>document.querySelector(s);
+const API=new URLSearchParams(location.search).get('api')||'';
+const CATS=['a-b','c-d','e-f','g-h','i-j','k-l','m-n','o-p','q-r','s-t','u-v','w-x','y-z','0-9'];
+
+/* ---- kunci zoom, seleksi, menu tekan-lama ---- */
+const el=e=>e.nodeType===1?e:e.parentElement;
+['gesturestart','gesturechange','gestureend'].forEach(t=>document.addEventListener(t,e=>e.preventDefault()));
+document.addEventListener('wheel',e=>{if(e.ctrlKey)e.preventDefault()},{passive:false});
+document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&['+','-','=','0'].includes(e.key))e.preventDefault()});
+document.addEventListener('selectstart',e=>{if(!el(e.target)?.closest('input'))e.preventDefault()});
+document.addEventListener('contextmenu',e=>{if(!el(e.target)?.closest('input'))e.preventDefault()});
+document.addEventListener('dragstart',e=>e.preventDefault());
+
+/* ---- util ---- */
+async function api(path){
+  let r,j;
+  try{r=await fetch(API+path)}catch{throw new Error('Tidak ada koneksi ke server.')}
+  try{j=await r.json()}catch{throw new Error('Respons server tidak bisa dibaca.')}
+  if(!j.success)throw new Error(j.error||'Gagal memuat data.');
+  return j;
+}
+const mk=(tag,cls,txt)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(txt!=null)n.textContent=txt;return n};
+const tidy=t=>t.replace(/^Kunci Gitar\s*/i,'').replace(/^Chord\s+/i,'').trim()||t;
+
+function clean(html){
+  const t=document.createElement('template');t.innerHTML=html;
+  t.content.querySelectorAll('script,style,iframe,object,embed,link,meta,form').forEach(n=>n.remove());
+  t.content.querySelectorAll('*').forEach(n=>{
+    [...n.attributes].forEach(a=>{if(/^on/i.test(a.name)||/^\s*javascript:/i.test(a.value)||a.name==='style')n.removeAttribute(a.name)});
+  });
+  return t.content;
+}
+
+/* ---- daftar ---- */
+const list=$('#list'),head=$('#head'),letters=$('#letters');
+let view={items:[],kind:'song'},homeData=null,tabNow='terbaru';
+
+function note(msg,retry){
+  list.replaceChildren();
+  const n=mk('div','note',msg);
+  if(retry){const b=mk('button','btn','Coba lagi');b.onclick=retry;n.append(document.createElement('br'),b)}
+  list.append(n);
+}
+function render(items,kind,empty){
+  view={items,kind};
+  if(!items.length)return note(empty||'Tidak ada hasil.');
+  list.replaceChildren(...items.map((it,i)=>{
+    const b=mk('button','row',tidy(it.title));b.dataset.i=i;return b;
+  }));
+}
+list.addEventListener('click',e=>{
+  const r=e.target.closest('.row');if(!r)return;
+  const it=view.items[+r.dataset.i];
+  if(view.kind==='song')openSong(it.url,tidy(it.title));
+  else search(tidy(it.title));
+});
+function setHead(t){head.hidden=!t;head.textContent=t||''}
+
+async function showTab(t){
+  tabNow=t;
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+  setHead('');
+  if(t==='artis'){
+    letters.hidden=false;
+    letters.querySelectorAll('button').forEach(b=>b.classList.remove('on'));
+    return note('Pilih huruf awal nama artis.');
+  }
+  letters.hidden=true;
+  note('Memuat…');
+  try{
+    homeData=homeData||await api('/api/home');
+    if(tabNow!==t)return;
+    render(t==='terbaru'?homeData.latest:homeData.featured,'song','Belum ada daftar.');
+  }catch(e){if(tabNow===t)note(e.message,()=>showTab(t))}
+}
+$('#tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(b)showTab(b.dataset.t)});
+
+CATS.forEach(c=>{const b=mk('button','',c.toUpperCase());b.dataset.c=c;letters.append(b)});
+letters.addEventListener('click',async e=>{
+  const b=e.target.closest('button');if(!b)return;
+  letters.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
+  note('Memuat…');
+  try{
+    const d=await api('/api/list/'+b.dataset.c);
+    setHead(d.total+' artis di '+d.category+'. Ketuk nama untuk melihat lagunya.');
+    render(d.data,'artist','Tidak ada artis.');
+  }catch(err){note(err.message,()=>b.click())}
+});
+
+async function search(q){
+  q=q.trim();if(!q)return;
+  $('#q').value=q;$('#q').blur();
+  tabNow='';letters.hidden=true;
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.remove('on'));
+  setHead('');note('Mencari…');
+  try{
+    const d=await api('/api/search?q='+encodeURIComponent(q));
+    setHead(d.total+' hasil untuk "'+q+'"');
+    render(d.data,'song','Tidak ada lagu yang cocok. Coba kata kunci lain.');
+  }catch(e){note(e.message,()=>search(q))}
+}
+$('#f').addEventListener('submit',e=>{e.preventDefault();search($('#q').value)});
+
+/* ---- halaman lagu ---- */
+const song=$('#song'),sheet=$('#sheet'),wrap=$('#wrap'),strip=$('#strip');
+let cur={url:'',semi:0},memo=new Map(),size=14;
+for(let s=-6;s<=6;s++){
+  const b=mk('button','',s===0?'Asli':(s>0?'+':'\u2212')+Math.abs(s));b.dataset.s=s;strip.append(b);
+}
+strip.addEventListener('click',e=>{const b=e.target.closest('button');if(b)loadSong(+b.dataset.s)});
+
+function openSong(url,title){
+  cur={url,semi:0};
+  $('#st').textContent=title;
+  sheet.textContent='';wrap.scrollTop=0;
+  song.hidden=false;
+  history.pushState({song:1},'');
+  loadSong(0);
+}
+async function loadSong(semi){
+  cur.semi=semi;
+  strip.querySelectorAll('button').forEach(b=>b.classList.toggle('on',+b.dataset.s===semi));
+  const key=cur.url+'|'+semi,url=cur.url;
+  sheet.textContent='Memuat…';
+  try{
+    const d=memo.get(key)||await api('/api/chord?url='+encodeURIComponent(url)+'&transpose='+semi);
+    memo.set(key,d);
+    if(cur.url!==url||cur.semi!==semi)return;
+    if(d.title)$('#st').textContent=tidy(d.title);
+    sheet.replaceChildren(clean(d.contentHtml));
+  }catch(e){
+    if(cur.url!==url||cur.semi!==semi)return;
+    sheet.replaceChildren();
+    const n=mk('div','note',e.message),b=mk('button','btn','Coba lagi');
+    b.onclick=()=>loadSong(semi);n.append(document.createElement('br'),b);sheet.append(n);
+  }
+}
+function closeSong(){stopAuto();song.hidden=true}
+$('#back').onclick=()=>history.back();
+addEventListener('popstate',()=>{if(!song.hidden)closeSong()});
+
+function setSize(n){size=Math.max(10,Math.min(26,n));sheet.style.fontSize=size+'px'}
+$('#fm').onclick=()=>setSize(size-1);
+$('#fp').onclick=()=>setSize(size+1);
+
+/* gulir otomatis */
+const SPEEDS=[['mati',0],['pelan',18],['sedang',36],['cepat',64]];
+let si=0,raf=0,last=0,acc=0;
+function tick(t){
+  const dt=last?t-last:0;last=t;
+  acc+=SPEEDS[si][1]*dt/1000;
+  if(acc>=1){wrap.scrollTop+=Math.floor(acc);acc%=1}
+  raf=requestAnimationFrame(tick);
+}
+function setAuto(i){
+  si=i;cancelAnimationFrame(raf);last=0;acc=0;
+  $('#auto').textContent='Gulir: '+SPEEDS[i][0];
+  $('#auto').classList.toggle('on',i>0);
+  if(i>0)raf=requestAnimationFrame(tick);
+}
+function stopAuto(){setAuto(0)}
+$('#auto').onclick=()=>setAuto((si+1)%SPEEDS.length);
+wrap.addEventListener('touchstart',()=>{if(si)stopAuto()},{passive:true});
+
+showTab('terbaru');
+})();
+</script>
+</body>
+  </html>
+  
