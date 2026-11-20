@@ -21,7 +21,7 @@ const INFO = {
 async function route(url) {
   const p = url.pathname.replace(/\/+$/, '') || '/';
   const q = url.searchParams;
-  if (p === '/') return INFO;
+  if (p === '/' || p === '/api') return INFO;
   if (p === '/api/home') return ct.home();
   if (p === '/api/daftar-isi') return ct.daftarIsi();
   if (p.startsWith('/api/list/')) return ct.category(decodeURIComponent(p.slice(10)).toLowerCase());
