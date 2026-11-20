@@ -20,7 +20,8 @@
 *{box-sizing:border-box;margin:0;padding:0;
   -webkit-user-select:none;user-select:none;
   -webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;
-  touch-action:pan-x pan-y}
+  touch-action:pan-x pan-y;scrollbar-width:none;-ms-overflow-style:none}
+*::-webkit-scrollbar{display:none}
 ::selection{background:transparent;color:inherit}
 ::-moz-selection{background:transparent;color:inherit}
 html{height:100%;background:var(--bg)}
@@ -31,7 +32,6 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 [hidden]{display:none!important}
 .ic{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none;pointer-events:none}
 
-/* latar: dua bidang warna statis agar kaca punya sesuatu untuk diburamkan */
 .bg{position:fixed;inset:0;z-index:-1;overflow:hidden;background:var(--bg)}
 .bg i{position:absolute;border-radius:50%;filter:blur(90px)}
 .bg i:nth-child(1){width:70vmax;height:70vmax;left:-30vmax;top:-34vmax;background:#2b3a8f;opacity:.4}
@@ -43,17 +43,15 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .glass{background:var(--glass);border:1px solid var(--edge);
   -webkit-backdrop-filter:blur(16px) saturate(140%);backdrop-filter:blur(16px) saturate(140%)}
 
-/* tombol + riak */
 .rip{position:relative;overflow:hidden;transition:transform .3s var(--spring),background-color .2s}
 .rip:active{transform:scale(.93)}
 .ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,.28);transform:scale(0);animation:rp .55s ease-out forwards;pointer-events:none}
 @keyframes rp{to{transform:scale(1);opacity:0}}
-.ib{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:var(--glass);border:1px solid var(--edge)}
+.ib{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--glass);border:1px solid var(--edge)}
 .ib.solid{background:var(--accent);border-color:transparent;color:#0c0e13}
-.ib.solid .ic{width:22px;height:22px}
+.ib.solid .ic{width:21px;height:21px}
 .pill{display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border-radius:999px;font-weight:700;background:var(--accent);color:#0c0e13}
 
-/* beranda */
 .page{max-width:640px;margin:0 auto;padding:30px 18px 80px}
 .logo{font-size:34px;font-weight:800;letter-spacing:-.04em;line-height:1}
 .sub{margin-top:8px;color:var(--mute);font-size:15px}
@@ -96,9 +94,8 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .card:focus-visible{border-color:var(--accent)}
 .head .count{color:var(--accent);font-family:var(--mono);font-weight:600}
 .foot{display:flex;align-items:center;gap:7px}
-.foot:before{content:"";width:6px;height:6px;border-radius:50%;background:var(--chord);box-shadow:0 0 10px color-mix(in srgb,var(--chord) 55%,transparent)}
+.foot:before{content:"";width:6px;height:6px;border-radius:50%;background:var(--chord)}
 
-/* shimmer */
 .sk .dot,.sk .ln,.skl i{position:relative;overflow:hidden;background:rgba(255,255,255,.07)}
 .sk .ln{flex:1;height:12px;border-radius:8px}
 .skl{display:grid;gap:12px;padding:4px 0}
@@ -111,7 +108,6 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .note .pill{margin-top:14px}
 .foot{margin:26px 4px 0;font-size:12px;color:var(--mute)}
 
-/* halaman lagu: latar tanpa filter agar kaca di dalamnya bisa memburamkan isi */
 #song{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;background:var(--bg);
   padding:env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);animation:up .45s var(--ease)}
 #song.out{animation:down .28s ease-in forwards}
@@ -122,7 +118,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 #pct{font:600 13px var(--mono);color:var(--mute);min-width:38px;text-align:right}
 .prog{height:2px;background:rgba(255,255,255,.1)}
 .prog i{display:block;height:100%;background:var(--accent);transform-origin:0 50%;transform:scaleX(var(--p,0))}
-#wrap{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;padding:18px 14px calc(220px + env(safe-area-inset-bottom))}
+#wrap{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;padding:18px 14px calc(165px + env(safe-area-inset-bottom))}
 #wrap h1{font-size:26px;line-height:1.15;font-weight:800;letter-spacing:-.03em;padding:0 4px}
 #wrap .sub2{margin:6px 4px 16px;font-size:13px;color:var(--mute)}
 .paper{padding:16px;overflow-x:auto;border-radius:18px;background:rgba(255,255,255,.035);border:1px solid var(--edge)}
@@ -133,27 +129,32 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 #sheet span.custom,#sheet img{display:none}
 #sheet a{color:inherit;text-decoration:none}
 
-/* dock kendali */
-#dock{position:fixed;left:12px;right:12px;bottom:calc(30px + env(safe-area-inset-bottom));max-width:520px;margin:0 auto;z-index:60;
-  padding:2px 14px 14px;border-radius:26px;background:rgba(22,25,34,.78);transition:transform .45s var(--spring);
-  max-height:calc(100dvh - 32px);overflow:visible}
-#dock.min{transform:translateY(calc(100% - 34px))}
-#dk{display:grid;place-items:center;width:100%;height:30px;color:var(--mute)}
-#dk .ic{transition:transform .35s var(--spring)}
-#dock.min #dk .ic{transform:rotate(180deg)}
+#dock{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));max-width:480px;margin:0 auto;z-index:60;
+  padding:4px 14px 12px;border-radius:24px;background:rgba(20,23,31,.88);
+  transition:all .35s var(--ease)}
+#dk{display:grid;place-items:center;width:100%;height:26px;color:var(--mute)}
+#dk .ic{width:18px;height:18px;transition:transform .3s var(--spring)}
 .r1,.r2{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.r2{margin-top:12px;gap:14px}
-.g{display:flex;align-items:center;gap:8px}
+.r2{margin-top:10px;gap:12px}
+.g{display:flex;align-items:center;gap:6px}
 .lab{font-size:12px;font-weight:700;color:var(--mute)}
-.v{min-width:46px;text-align:center;font:600 15px var(--mono)}
+.v{min-width:42px;text-align:center;font:600 14px var(--mono)}
 .v.pop{animation:vpop .35s var(--spring)}
 @keyframes vpop{from{transform:scale(1.5);opacity:.3}}
-.sl{flex:1;display:grid;gap:8px}
+.sl{flex:1;display:grid;gap:6px}
 .sl div{display:flex;justify-content:space-between}
-#spd{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:6px;outline:0;touch-action:none;--fill:33%;
+#spd{-webkit-appearance:none;appearance:none;width:100%;height:5px;border-radius:5px;outline:0;touch-action:none;--fill:33%;
   background:linear-gradient(var(--accent),var(--accent)) 0/var(--fill) 100% no-repeat,rgba(255,255,255,.15)}
-#spd::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#fff}
-#spd::-moz-range-thumb{width:22px;height:22px;border:0;border-radius:50%;background:#fff}
+#spd::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#fff}
+#spd::-moz-range-thumb{width:20px;height:20px;border:0;border-radius:50%;background:#fff}
+
+#dock.min{left:auto;right:14px;width:auto;max-width:none;margin:0;padding:6px;border-radius:999px;
+  display:flex;align-items:center;gap:6px;background:rgba(20,23,31,.92)}
+#dock.min .r1,#dock.min .sl{display:none}
+#dock.min .r2{margin-top:0;gap:0}
+#dock.min #go{width:42px!important;height:42px!important}
+#dock.min #dk{width:38px;height:42px;border-radius:999px;order:2}
+#dock.min #dk .ic{transform:rotate(180deg)}
 </style>
 </head>
 <body>
@@ -225,7 +226,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
       </div>
     </div>
     <div class="r2">
-      <button class="ib solid rip" id="go" aria-label="Mulai gulir otomatis" style="width:52px;height:52px"><svg class="ic"><use href="#i-play"/></svg></button>
+      <button class="ib solid rip" id="go" aria-label="Mulai gulir otomatis" style="width:46px;height:46px"><svg class="ic"><use href="#i-play"/></svg></button>
       <div class="sl">
         <div><span class="lab">Kecepatan gulir</span><span class="v" id="sv" style="min-width:0">3</span></div>
         <input id="spd" type="range" min="1" max="8" step="1" value="3" aria-label="Kecepatan gulir">
@@ -244,7 +245,6 @@ const ico=(n,cls)=>{const s=document.createElementNS(NS,'svg');s.setAttribute('c
 const mk=(tag,cls,txt)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(txt!=null)n.textContent=txt;return n};
 const el=e=>e.nodeType===1?e:e.parentElement;
 
-/* kunci zoom, seleksi, menu tekan-lama */
 ['gesturestart','gesturechange','gestureend'].forEach(t=>document.addEventListener(t,e=>e.preventDefault()));
 document.addEventListener('wheel',e=>{if(e.ctrlKey)e.preventDefault()},{passive:false});
 document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&['+','-','=','0'].includes(e.key))e.preventDefault()});
@@ -252,7 +252,6 @@ document.addEventListener('selectstart',e=>{if(!el(e.target)?.closest('input'))e
 document.addEventListener('contextmenu',e=>{if(!el(e.target)?.closest('input'))e.preventDefault()});
 document.addEventListener('dragstart',e=>e.preventDefault());
 
-/* riak saat klik */
 document.addEventListener('pointerdown',e=>{
   const b=el(e.target)?.closest('.rip');if(!b)return;
   const r=b.getBoundingClientRect(),d=Math.max(r.width,r.height)*2.2;
@@ -261,7 +260,6 @@ document.addEventListener('pointerdown',e=>{
   b.append(s);s.addEventListener('animationend',()=>s.remove());
 });
 
-/* bilah progres muat */
 const bar=$('#pbar');let pend=0;
 function pStart(){
   if(pend++)return;
@@ -292,7 +290,6 @@ function clean(html){
   return t.content;
 }
 
-/* daftar */
 const list=$('#list'),head=$('#head'),letters=$('#letters'),tabs=$('#tabs');
 let view={items:[],kind:'song'},homeData=null,tabNow='terbaru';
 function setHead(t){
@@ -319,8 +316,6 @@ function render(items,kind,empty){
     const dot=mk('span','dot');dot.append(ico('note'));
     const title=tidy(it.title);
     const text=mk('span','t');
-    // Bagian sebelum tanda " - " diperlakukan sebagai nama artis.
-    // Warna mengikuti --accent sehingga otomatis selaras dengan tema UI.
     const cut=title.indexOf(' - ');
     if(cut>0){
       text.append(mk('span','artist',title.slice(0,cut)));
@@ -387,7 +382,6 @@ async function search(q){
 }
 $('#f').addEventListener('submit',e=>{e.preventDefault();search($('#q').value)});
 
-/* halaman lagu */
 const song=$('#song'),sheet=$('#sheet'),wrap=$('#wrap'),dock=$('#dock');
 let cur={url:'',semi:0},memo=new Map(),size=14;
 
@@ -440,14 +434,12 @@ function setSize(n){size=Math.max(10,Math.min(26,n));sheet.style.fontSize=size+'
 $('#fm').onclick=()=>setSize(size-1);
 $('#fp').onclick=()=>setSize(size+1);
 
-/* progres baca */
 function prog(){
   const m=wrap.scrollHeight-wrap.clientHeight,p=m>0?Math.min(1,wrap.scrollTop/m):0;
   $('#pg').style.setProperty('--p',p);$('#pct').textContent=Math.round(p*100)+'%';
 }
 wrap.addEventListener('scroll',prog,{passive:true});
 
-/* gulir otomatis */
 let spd=3,run=false,raf=0,last=0,acc=0;
 function tick(t){
   const dt=last?t-last:0;last=t;
