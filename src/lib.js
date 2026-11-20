@@ -117,25 +117,50 @@ async function cseInit() {
   return (cse = { cx, tok, ver: ver || '', t: Date.now() });
 }
 
-export async function search(q) {
-  if (!q) throw new HttpError('Parameter q wajib diisi', 400);
-  const c = await cseInit();
+const norm = s => s.toLowerCase().normalize('NFKD').replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+
+// Urutkan hasil: judul/slug yang memuat kata kunci di atas, sisanya (cocok dari isi lirik) di bawah
+function rank(items, q) {
+  const toks = norm(q).split(' ').filter(Boolean);
+  const need = Math.max(1, Math.ceil(toks.length * 0.6));
+  const scored = items.map((it, i) => {
+    let slug = '';
+    try { slug = decodeURIComponent(it.url.split('/').pop() || '').replace(/\.html$/, '').replace(/-/g, ' '); } catch {}
+    const hay = norm(it.title + ' ' + slug);
+    return { it, i, hit: toks.filter(t => hay.includes(t)).length };
+  });
+  scored.sort((a, b) => b.hit - a.hit || a.i - b.i);
+  const good = scored.filter(x => x.hit >= need);
+  return { data: (good.length ? good : scored).map(x => x.it), loose: !good.length };
+}
+
+async function cseCall(c, q, start) {
   const u = 'https://cse.google.com/cse/element/v1?' + new URLSearchParams({
-    rsz: 'filtered_cse', num: '10', hl: 'id', source: 'gcsc', gss: '.com',
+    rsz: 'filtered_cse', num: '10', start: String(start), hl: 'id', source: 'gcsc', gss: '.com',
     cselibv: c.ver, cx: c.cx, q, safe: 'off', cse_tok: c.tok, sort: '', exp: 'cc,apo',
     callback: 'cb', rurl: SEARCH_PAGE,
   });
   const res = await fetch(u, { headers: { 'User-Agent': UA, Referer: SEARCH_PAGE } });
   const text = await res.text();
-  let json;
-  try { json = JSON.parse(text.slice(text.indexOf('(') + 1, text.lastIndexOf(')'))); }
-  catch { cse = null; throw new HttpError(`Google CSE membalas HTTP ${res.status} dan hasilnya tidak bisa dibaca`, 502); }
+  try { return JSON.parse(text.slice(text.indexOf('(') + 1, text.lastIndexOf(')'))).results || []; }
+  catch { throw new HttpError(`Google CSE membalas HTTP ${res.status} dan hasilnya tidak bisa dibaca`, 502); }
+}
+
+export async function search(q, debug = false) {
+  if (!q) throw new HttpError('Parameter q wajib diisi', 400);
+  const c = await cseInit();
+  const [p1, p2] = await Promise.allSettled([cseCall(c, q, 0), cseCall(c, q, 10)]);
+  if (p1.status === 'rejected') { cse = null; throw p1.reason; }
+  const raw = [...p1.value, ...(p2.status === 'fulfilled' ? p2.value : [])];
   const seen = new Set();
-  const data = (json.results || []).map(r => ({
+  const items = raw.map(r => ({
     title: tidyTitle(r.titleNoFormatting || ''),
     url: r.unescapedUrl || r.url || '',
   })).filter(i => i.title && POST_RE.test(i.url) && !seen.has(i.url) && seen.add(i.url));
-  return { success: true, query: q, source: 'google-cse', total: data.length, data };
+  const { data, loose } = rank(items, q);
+  const out = { success: true, query: q, source: 'google-cse', total: data.length, loose, data };
+  if (debug) out.debug = { cx: c.cx, rawCount: raw.length, raw: raw.map(r => ({ t: r.titleNoFormatting, u: r.unescapedUrl || r.url })) };
+  return out;
 }
 
 // Diagnosa: cek status tiap alamat sumber dari sisi Worker
