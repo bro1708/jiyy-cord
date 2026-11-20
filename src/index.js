@@ -26,6 +26,7 @@ async function route(url) {
   if (p === '/api/daftar-isi') return ct.daftarIsi();
   if (p.startsWith('/api/list/')) return ct.category(decodeURIComponent(p.slice(10)).toLowerCase());
   if (p === '/api/chord') return ct.chord(q.get('url'), q.get('transpose'));
+  if (p === '/api/probe') return ct.probe();
   if (p === '/api/search') return ct.search((q.get('q') || '').trim());
   throw new ct.HttpError('Not found', 404);
 }
