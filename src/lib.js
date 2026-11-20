@@ -101,34 +101,41 @@ export async function chord(url, semi = 0) {
   return { success: true, title, url, transpose: semi, contentHtml, content };
 }
 
-// Pencarian tanpa browser: coba feed Blogger, lalu halaman /search bawaan Blogger
+// Pencarian ChordTela memakai Google CSE. Kita panggil endpoint CSE langsung (tanpa browser).
+const SEARCH_PAGE = `${BASE}/chord-kunci-gitar-dasar-hasil-pencarian`;
+let cse = null; // { cx, tok, ver, t }
+
+async function cseInit() {
+  if (cse && Date.now() - cse.t < 3600_000) return cse;
+  const page = await getText(SEARCH_PAGE);
+  const cx = (page.match(/cse(?:\.js)?\?[^"']*?cx=([^"'&\s]+)/) || page.match(/["']?\bcx["']?\s*[:=]\s*["']([^"']+)["']/) || [])[1];
+  if (!cx) throw new HttpError('ID mesin pencarian (cx) tidak ditemukan di halaman pencarian ChordTela', 502);
+  const js = await (await fetch(`https://cse.google.com/cse.js?hpg=1&cx=${encodeURIComponent(cx)}`, { headers: { 'User-Agent': UA, Referer: SEARCH_PAGE } })).text();
+  const tok = (js.match(/"cse_token"\s*:\s*"([^"]+)"/) || [])[1];
+  const ver = (js.match(/"cselibVersion"\s*:\s*"([^"]+)"/) || [])[1];
+  if (!tok) throw new HttpError('Token pencarian Google CSE tidak ditemukan', 502);
+  return (cse = { cx, tok, ver: ver || '', t: Date.now() });
+}
+
 export async function search(q) {
   if (!q) throw new HttpError('Parameter q wajib diisi', 400);
-  const enc = encodeURIComponent(q);
-  let data = [], source = '', feedErr, htmlErr;
-
-  const feedUrl = `${BASE}/feeds/posts/summary?q=${enc}&alt=json&max-results=25`;
-  try {
-    const json = JSON.parse(await getText(feedUrl));
-    data = (json.feed?.entry || []).map(e => ({
-      title: tidyTitle(e.title?.$t || ''),
-      url: (e.link || []).find(l => l.rel === 'alternate')?.href || '',
-    })).filter(i => i.title && i.url);
-    source = feedUrl;
-  } catch (e) { feedErr = e; }
-
-  if (!data.length) {
-    const htmlUrl = `${BASE}/search?q=${enc}&max-results=25`;
-    try {
-      const $ = cheerio.load(await getText(htmlUrl));
-      data = postLinks($).map(i => ({ ...i, title: tidyTitle(i.title) })).filter(i => i.title);
-      source = htmlUrl;
-    } catch (e) { htmlErr = e; }
-  }
-
-  if (!data.length && feedErr && htmlErr)
-    throw new HttpError(`Pencarian gagal. Feed: ${feedErr.message}. Halaman cari: ${htmlErr.message}`, 502);
-  return { success: true, query: q, source, total: data.length, data };
+  const c = await cseInit();
+  const u = 'https://cse.google.com/cse/element/v1?' + new URLSearchParams({
+    rsz: 'filtered_cse', num: '10', hl: 'id', source: 'gcsc', gss: '.com',
+    cselibv: c.ver, cx: c.cx, q, safe: 'off', cse_tok: c.tok, sort: '', exp: 'cc,apo',
+    callback: 'cb', rurl: SEARCH_PAGE,
+  });
+  const res = await fetch(u, { headers: { 'User-Agent': UA, Referer: SEARCH_PAGE } });
+  const text = await res.text();
+  let json;
+  try { json = JSON.parse(text.slice(text.indexOf('(') + 1, text.lastIndexOf(')'))); }
+  catch { cse = null; throw new HttpError(`Google CSE membalas HTTP ${res.status} dan hasilnya tidak bisa dibaca`, 502); }
+  const seen = new Set();
+  const data = (json.results || []).map(r => ({
+    title: tidyTitle(r.titleNoFormatting || ''),
+    url: r.unescapedUrl || r.url || '',
+  })).filter(i => i.title && POST_RE.test(i.url) && !seen.has(i.url) && seen.add(i.url));
+  return { success: true, query: q, source: 'google-cse', total: data.length, data };
 }
 
 // Diagnosa: cek status tiap alamat sumber dari sisi Worker
