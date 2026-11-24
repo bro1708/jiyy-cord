@@ -8,6 +8,7 @@ const CORS = {
 
 const INFO = {
   success: true,
+  version: 'v2-cache-stale',
   name: 'jiyy-cord API (ChordTela) — Cloudflare Workers',
   endpoints: {
     home: '/api/home',
