@@ -13,20 +13,53 @@ export class HttpError extends Error {
 }
 
 // ─── Fetch ─────────────────────────────────────────────────────
+// Cache di memori isolate: caches.default tidak aktif di *.workers.dev, jadi tanpa ini
+// setiap request aplikasi menembak ChordTela langsung dan mudah kena tantangan Cloudflare.
+const FRESH_MS = 10 * 60e3;       // dipakai langsung tanpa fetch
+const STALE_MS = 24 * 60 * 60e3;  // dipakai hanya bila sumber sedang memblokir
+const mem = new Map();            // url -> { html, at }
+const inflight = new Map();       // url -> Promise (gabungkan request kembar)
+
+const UAS = [
+  UA,
+  'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15',
+];
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function remember(url, html) {
+  if (mem.size > 150) mem.delete(mem.keys().next().value);
+  mem.set(url, { html, at: Date.now() });
+}
+
 async function getText(url, attempts = 3) {
+  const hit = mem.get(url);
+  if (hit && Date.now() - hit.at < FRESH_MS) return hit.html;
+
+  if (inflight.has(url)) return inflight.get(url);
+  const job = fetchText(url, attempts, hit).finally(() => inflight.delete(url));
+  inflight.set(url, job);
+  return job;
+}
+
+async function fetchText(url, attempts, stale) {
   let lastError;
 
   for (let attempt = 1; attempt <= attempts; attempt++) {
     try {
       const res = await fetch(url, {
         headers: {
-          'User-Agent': UA,
+          'User-Agent': UAS[(attempt - 1) % UAS.length],
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
           'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache',
+          'Upgrade-Insecure-Requests': '1',
         },
         redirect: 'follow',
+        // cache edge Cloudflare untuk subrequest; hanya respons sukses yang disimpan
+        cf: {
+          cacheEverything: true,
+          cacheTtlByStatus: { '200-299': 1800, '300-599': 0 },
+        },
       });
 
       const html = await res.text();
@@ -52,6 +85,7 @@ async function getText(url, attempts = 3) {
         // Respons server sementara dapat dicoba ulang.
         if (res.status >= 500 && attempt < attempts) {
           lastError = error;
+          await sleep(500 * attempt);
           continue;
         }
         throw error;
@@ -59,18 +93,23 @@ async function getText(url, attempts = 3) {
 
       if (!html || html.trim().length < 100) {
         lastError = new HttpError('Respons ChordTela kosong atau tidak lengkap.', 502);
-        if (attempt < attempts) continue;
+        if (attempt < attempts) { await sleep(500 * attempt); continue; }
         throw lastError;
       }
 
+      remember(url, html);
       return html;
     } catch (error) {
       if (error instanceof HttpError && error.status !== 502) throw error;
       lastError = error;
 
       if (attempt >= attempts) break;
+      await sleep(600 * attempt); // jeda sebelum coba lagi (sebelumnya langsung tanpa jeda)
     }
   }
+
+  // Sumber memblokir: lebih baik data lama daripada layar error.
+  if (stale && Date.now() - stale.at < STALE_MS) return stale.html;
 
   if (lastError instanceof HttpError) throw lastError;
   throw new HttpError(
